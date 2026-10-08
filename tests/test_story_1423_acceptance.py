@@ -6,7 +6,7 @@ applies it at that width: the base rules, then every @media (max-width) rule the
 import re
 import unittest
 
-from test_page import Page, px, read, style_at
+from test_page import Page, px, read, style_at, tab_stops
 
 READABLE = 16
 WIDE, NARROW = 1280, 375
@@ -49,14 +49,14 @@ class Story1423AcceptanceTests(unittest.TestCase):
 
     def test_tc1429_ac2_the_page_shows_the_site_name_the_offer_line_and_the_contact_link_and_no_sign_in_payment_or_search_control(self):
         """AC2, Test Case 1429."""
-        name, offer, contact = self.text("h1"), self.text("p", class_="offer"), self.text("a", class_="contact")
+        name, offer, contact = self.text("title"), self.text("p", class_="offer"), self.text("a", class_="contact")
         self.assertTrue(name and offer and contact)
         self.assertEqual(len(self.page.find("a", class_="contact")), 1, "one link to contact the team")
         self.assertEqual([tag for tag in CONTROLS if self.page.find(tag)], [], "no sign-in, payment, or search control")
-        # Story 1453 added products between them: the name and offer line still open the page and the contact link closes it.
-        body = " ".join(self.text("body").split())
-        self.assertTrue(body.startswith(f"{name} {offer}"))
-        self.assertTrue(body.endswith(contact))
+        # Stories 1453 and 1459 added a banner and products between them: the header still opens the page with
+        # the site name and offer line, and the contact link still closes it.
+        self.assertEqual(" ".join(self.text("header").split()), f"{name} {offer}")
+        self.assertTrue(" ".join(self.text("body").split()).endswith(contact))
 
     def test_tc1430_ac3_in_a_wide_window_the_three_items_are_readable_do_not_overlap_and_do_not_scroll_sideways(self):
         """AC3, Test Case 1430."""
@@ -69,10 +69,9 @@ class Story1423AcceptanceTests(unittest.TestCase):
 
     def test_tc1431_ac5_tab_reaches_the_contact_link_with_a_visible_focus_style_and_enter_follows_it(self):
         """AC5, Test Case 1431."""
-        focusable = [e for e in self.page.elements
-                     if (e.tag == "a" and e.attrs.get("href")) or e.tag in CONTROLS[1:] or "tabindex" in e.attrs]
-        self.assertEqual([e.attrs.get("class") for e in focusable], ["contact"], "the first Tab lands on the contact link")
-        self.assertNotIn("tabindex", focusable[0].attrs)
+        contact = self.page.find("a", class_="contact")[0]
+        self.assertIn(contact, tab_stops(self.page), "Tab reaches the contact link")
+        self.assertNotIn("tabindex", contact.attrs)
 
         focus = style_at(self.css, ".contact:focus-visible", WIDE)
         width, line = focus["outline"].split()[:2]
@@ -81,7 +80,7 @@ class Story1423AcceptanceTests(unittest.TestCase):
         self.assertNotRegex(self.css, r"outline:\s*(none|0)\b", "no rule hides the focus outline")
 
         # Enter on a focused link with a real address opens it; there is no script to stop that.
-        self.assertRegex(focusable[0].attrs["href"], r"^https?://\S+$")
+        self.assertRegex(contact.attrs["href"], r"^https?://\S+$")
 
 
 if __name__ == "__main__":

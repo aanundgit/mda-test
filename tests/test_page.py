@@ -63,6 +63,16 @@ def read(name):
     return (ROOT / name).read_text(encoding="utf-8")
 
 
+def tab_stops(page):
+    """The elements Tab visits, in page order. A negative tabindex can take focus but is never a Tab stop."""
+    def stop(e):
+        index = e.attrs.get("tabindex")
+        if index is not None:
+            return not index.startswith("-")
+        return (e.tag == "a" and e.attrs.get("href")) or e.tag in ("input", "button", "select", "textarea")
+    return [e for e in page.elements if stop(e)]
+
+
 def blocks(css):
     """Top-level (prelude, body) pairs, keeping the rules nested inside an @media block in its body."""
     css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
@@ -92,6 +102,22 @@ def style_at(css, selector, width):
             if selector in (s.strip() for s in selectors.split(",")):
                 applied.update(re.findall(r"([\w-]+)\s*:\s*([^;]+);", declarations))
     return applied
+
+
+def luminance(colour):
+    """WCAG relative luminance of #rgb, #rrggbb, or an (r, g, b) tuple of 0-255 channels."""
+    if isinstance(colour, str):
+        digits = colour.lstrip("#")
+        if len(digits) == 3:
+            digits = "".join(d * 2 for d in digits)
+        colour = [int(digits[i:i + 2], 16) for i in (0, 2, 4)]
+    linear = [c / 255 / 12.92 if c / 255 <= 0.03928 else ((c / 255 + 0.055) / 1.055) ** 2.4 for c in colour]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def contrast(a, b):
+    light, dark = sorted((luminance(a), luminance(b)), reverse=True)
+    return (light + 0.05) / (dark + 0.05)
 
 
 def px(value, width):
@@ -131,17 +157,17 @@ class HomePageTests(unittest.TestCase):
     def text(self, tag, **attrs):
         return self.page.find(tag, **attrs)[0].text.strip()
 
-    def test_the_site_name_is_the_only_main_heading(self):
+    def test_the_banner_headline_is_the_only_main_heading(self):
         self.assertEqual(len(self.page.find("h1")), 1)
-        self.assertEqual(self.text("h1"), "Northwind Outdoor")
+        self.assertEqual(self.text("h1"), "Gear up for your next trail")
 
     def test_the_page_title_is_the_site_name(self):
-        self.assertEqual(self.text("title"), self.text("h1"))
+        self.assertEqual(self.text("title"), self.text("p", class_="site-name"))
 
     def test_the_header_holds_the_site_name_and_offer_line_and_the_footer_holds_the_contact_link(self):
         header, footer = self.page.find("header")[0], self.page.find("footer")[0]
-        self.assertEqual([e.text.strip() for e in self.page.within(header, "h1")], [self.text("h1")])
-        self.assertEqual(len(self.page.within(header, "p")), 1)
+        self.assertEqual([e.attrs.get("class") for e in self.page.within(header, "p")], ["site-name", "offer"])
+        self.assertEqual(self.text("p", class_="site-name"), "Northwind Outdoor")
         self.assertEqual([e.attrs.get("class") for e in self.page.within(footer, "a")], ["contact"])
 
     def test_the_contact_link_goes_to_a_web_address(self):
@@ -194,6 +220,34 @@ class ProductCardTests(unittest.TestCase):
         self.assertNotRegex(self.page.find("body")[0].text, r"(?i)[$€£]\s*\d|\bprice\b|\bcart\b")
 
 
+class BannerTests(unittest.TestCase):
+    def setUp(self):
+        self.page = Page(read("index.html"))
+        self.banner = self.page.find("section", class_="banner")[0]
+
+    def test_the_banner_comes_straight_after_the_header_and_before_main(self):
+        order = [e for e in self.page.elements if e.tag in ("header", "main") or e is self.banner]
+        self.assertEqual([e.tag for e in order], ["header", "section", "main"])
+
+    def test_the_banner_is_labelled_by_its_headline(self):
+        heading = self.page.find("h1", id=self.banner.attrs["aria-labelledby"])[0]
+        self.assertIn(heading, self.page.within(self.banner, "h1"))
+
+    def test_the_banner_holds_one_described_photo(self):
+        photos = self.page.within(self.banner, "img")
+        self.assertEqual(len(photos), 1)
+        self.assertGreaterEqual(len(photos[0].attrs.get("alt", "").split()), 4)
+
+    def test_shop_now_links_to_the_products_section(self):
+        links = self.page.within(self.banner, "a")
+        self.assertEqual([(a.attrs.get("class"), a.text.strip()) for a in links], [("shop-now", "Shop now")])
+        target = links[0].attrs["href"]
+        self.assertEqual(self.page.find("section", id=target.lstrip("#"))[0].attrs.get("class"), "products")
+
+    def test_the_products_section_can_take_focus_without_becoming_a_tab_stop(self):
+        self.assertEqual(self.page.find("section", class_="products")[0].attrs.get("tabindex"), "-1")
+
+
 class StyleTests(unittest.TestCase):
     def setUp(self):
         self.css = read("style.css")
@@ -218,6 +272,20 @@ class StyleTests(unittest.TestCase):
         photo = style_at(self.css, ".product-card img", 1280)
         self.assertEqual((photo["width"], photo["height"], photo["object-fit"]), ("100%", "auto", "cover"))
         self.assertIn("aspect-ratio", photo)
+
+    def test_the_banner_photo_and_text_share_one_grid_cell(self):
+        self.assertEqual(style_at(self.css, ".banner", 1280)["display"], "grid")
+        self.assertEqual(style_at(self.css, ".banner > *", 1280)["grid-area"], "1 / 1")
+
+    def test_the_banner_photo_covers_the_banner_without_stretching(self):
+        photo = style_at(self.css, ".banner-photo", 1280)
+        self.assertEqual((photo["width"], photo["height"], photo["object-fit"]), ("100%", "100%", "cover"))
+
+    def test_the_banner_text_sits_on_a_dark_overlay(self):
+        self.assertRegex(style_at(self.css, ".banner-text", 1280)["background"], r"rgb\(0 0 0 / 0\.\d+\)")
+
+    def test_shop_now_shows_a_visible_focus_outline(self):
+        self.assertRegex(self.css, r"\.shop-now:focus-visible\s*\{[^}]*outline:\s*\d+px solid")
 
 
 if __name__ == "__main__":
