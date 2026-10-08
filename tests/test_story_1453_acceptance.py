@@ -6,7 +6,7 @@ applies it at that width, and card widths are worked out from the main column, i
 import re
 import unittest
 
-from test_page import ROOT, Page, px, read, style_at
+from test_page import ROOT, Page, px, read, style_at, tab_stops
 
 WIDE, NARROW = 1280, 375
 READABLE = 16
@@ -51,7 +51,7 @@ class Story1453AcceptanceTests(unittest.TestCase):
     def assert_header_and_footer_read_well(self, width):
         header = style_at(self.css, ".site-header", width)
         self.assertGreaterEqual(contrast(header["color"], header["background"]), CONTRAST, "header text on its green")
-        for selector in ("h1", ".offer"):
+        for selector in (".site-name", ".offer"):
             self.assertGreaterEqual(px(style_at(self.css, selector, width)["font-size"], width), READABLE, selector)
         footer = self.page.find("footer")[0]
         self.assertEqual([e.attrs.get("class") for e in self.page.within(footer, "a")], ["contact"])
@@ -70,7 +70,7 @@ class Story1453AcceptanceTests(unittest.TestCase):
         self.assertEqual(self.page.find("meta", **{"http-equiv": "refresh"}), [], "the page does not redirect")
         self.assertEqual(self.page.find("script"), [], "no script can send the customer to a sign-in page")
         header = self.page.find("header")[0]
-        self.assertEqual([e.text.strip() for e in self.page.within(header, "h1")], ["Northwind Outdoor"])
+        self.assertEqual(self.page.within(header, "p")[0].text.strip(), "Northwind Outdoor", "the header leads with the site name")
 
     def test_tc1465_ac2_four_product_cards_each_have_a_photo_name_and_description_and_no_price_cart_or_sign_in(self):
         """AC2, Test Case 1465."""
@@ -118,13 +118,17 @@ class Story1453AcceptanceTests(unittest.TestCase):
 
     def test_tc1467_ac6_tab_reaches_the_footer_contact_link_with_a_visible_focus_style_and_enter_follows_it(self):
         """AC6, Test Case 1467."""
-        focusable = [e for e in self.page.elements
-                     if (e.tag == "a" and e.attrs.get("href")) or e.tag in CONTROLS[1:] or "tabindex" in e.attrs]
         contact = self.page.find("a", class_="contact")[0]
         self.assertIn(contact, self.page.within(self.page.find("footer")[0], "a"))
-        self.assertIn(contact, focusable, "Tab can reach the contact link")
-        self.assertFalse([e for e in self.page.elements if e.attrs.get("tabindex", "0").lstrip("-") != "0"],
-                         "no tabindex reorders or skips the page")
+        self.assertIn(contact, tab_stops(self.page), "Tab can reach the contact link")
+        # A positive tabindex reorders the page; a negative one on a link or control skips it. A negative one on a
+        # section, as story 1459's Shop now target uses, only lets it take focus.
+        def reorders_or_skips(e):
+            index = e.attrs.get("tabindex")
+            if index in (None, "0"):
+                return False
+            return not index.startswith("-") or e.tag in ("a", "input", "button", "select", "textarea")
+        self.assertFalse([e for e in self.page.elements if reorders_or_skips(e)], "no tabindex reorders or skips the page")
 
         width, line = style_at(self.css, ".contact:focus-visible", WIDE)["outline"].split()[:2]
         self.assertGreaterEqual(px(width, WIDE), 2, "the focus outline is easy to see")

@@ -9,11 +9,19 @@
 <body>
   <!-- Placeholder product descriptions, photos (see images/CREDITS.md), and contact address until the team supplies them. A contact email does not go in source. -->
   <header class="site-header">
-    <h1>Northwind Outdoor</h1>
+    <p class="site-name">Northwind Outdoor</p>
     <p class="offer">Hiking and camping gear</p>
   </header>
+  <section class="banner" aria-labelledby="banner-heading">
+    <img class="banner-photo" src="images/campsite.jpg" alt="A pale tent on a sandy lakeshore with a kayak beside it, pine forest and mountains behind, reflected in still water." width="1600" height="700">
+    <div class="banner-text">
+      <h1 id="banner-heading">Gear up for your next trail</h1>
+      <a class="shop-now" href="#products">Shop now</a>
+    </div>
+  </section>
   <main>
-    <section class="products" aria-labelledby="products-heading">
+    <!-- tabindex -1 lets Shop now move keyboard and screen reader focus here without adding a Tab stop. -->
+    <section class="products" id="products" tabindex="-1" aria-labelledby="products-heading">
       <h2 id="products-heading">Products</h2>
       <ul class="product-grid">
         <li class="product-card">
