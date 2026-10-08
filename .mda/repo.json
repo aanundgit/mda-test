@@ -1,0 +1,19 @@
+{
+  "kind": "web-frontend",
+  "summary": "Static web pages: HTML and CSS. No build step and no packages.",
+  "language": "html, css",
+  "framework": "none",
+  "runtime": "static-hosting",
+  "test": "python3 -m unittest discover -s tests",
+  "build": "",
+  "template": "",
+  "layout": [
+    "index.html: the page",
+    "style.css: the layout, with a rule for a narrow window",
+    "tests/: tests that read the page with the Python html.parser module"
+  ],
+  "packages": "A new package needs an ADR.",
+  "also": [],
+  "decided_on": "2026-10-08",
+  "adr": "docs/adr/0001-stack-web-frontend.md"
+}
