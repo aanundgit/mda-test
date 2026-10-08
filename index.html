@@ -3,15 +3,44 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>[Site name]</title>
+  <title>Northwind Outdoor</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Placeholder wording and contact address until the team supplies them. A contact email does not go in source. -->
+  <!-- Placeholder product descriptions, photos (see images/CREDITS.md), and contact address until the team supplies them. A contact email does not go in source. -->
+  <header class="site-header">
+    <h1>Northwind Outdoor</h1>
+    <p class="offer">Hiking and camping gear</p>
+  </header>
   <main>
-    <h1>[Site name]</h1>
-    <p class="offer">[One short line about what the site offers]</p>
-    <p><a class="contact" href="https://example.com/contact">Contact the team</a></p>
+    <section class="products" aria-labelledby="products-heading">
+      <h2 id="products-heading">Products</h2>
+      <ul class="product-grid">
+        <li class="product-card">
+          <img src="images/tent.jpg" alt="A green tent pitched on a grassy hillside under a cloudy sky." width="800" height="534">
+          <h3>Four-person tent</h3>
+          <p>A tent with room for four people.</p>
+        </li>
+        <li class="product-card">
+          <img src="images/backpack.jpg" alt="A hiker wearing an orange backpack looks out over a mountain lake." width="800" height="533">
+          <h3>Day-hiking backpack</h3>
+          <p>A pack sized for a day on the trail.</p>
+        </li>
+        <li class="product-card">
+          <img src="images/jacket.jpg" alt="A person in a red and black hooded rain jacket stands in falling rain." width="800" height="532">
+          <h3>Waterproof hiking jacket</h3>
+          <p>A hooded jacket that keeps the rain out.</p>
+        </li>
+        <li class="product-card">
+          <img src="images/boots.jpg" alt="A pair of worn leather hiking boots with red laces on dry heather." width="800" height="599">
+          <h3>Hiking boots</h3>
+          <p>A pair of boots made for the trail.</p>
+        </li>
+      </ul>
+    </section>
   </main>
+  <footer class="site-footer">
+    <a class="contact" href="https://example.com/contact">Contact the team</a>
+  </footer>
 </body>
 </html>

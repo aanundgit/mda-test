@@ -6,24 +6,79 @@ body {
   margin: 0;
   font-family: system-ui, sans-serif;
   line-height: 1.5;
+  color: #1c2b22;
 }
 
-main {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-  overflow-wrap: anywhere;
+.site-header {
+  padding: 1.5rem;
+  background: #1f3d2b;
+  color: #fff;
+  text-align: center;
 }
 
 h1 {
-  margin: 0 0 0.5rem;
+  margin: 0;
   font-size: clamp(1.75rem, 5vw, 2.75rem);
   line-height: 1.2;
 }
 
 .offer {
-  margin: 0 0 1.5rem;
+  margin: 0.25rem 0 0;
   font-size: 1.25rem;
+}
+
+main {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.product-card {
+  padding-bottom: 1rem;
+  border: 1px solid #d5dccf;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+/* The boots photo is taller than 3:2; anchoring at the bottom keeps the boots in frame when it is cropped. */
+.product-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  object-position: center bottom;
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.product-card h3 {
+  margin: 1rem 1rem 0.25rem;
+  font-size: 1.125rem;
+}
+
+.product-card p {
+  margin: 0 1rem;
+}
+
+.site-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #d5dccf;
+  text-align: center;
 }
 
 .contact {
@@ -35,6 +90,12 @@ h1 {
   outline-offset: 3px;
 }
 
+@media (max-width: 900px) {
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 600px) {
   main {
     padding: 1.25rem 1rem;
@@ -42,5 +103,9 @@ h1 {
 
   .offer {
     font-size: 1.125rem;
+  }
+
+  .product-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
