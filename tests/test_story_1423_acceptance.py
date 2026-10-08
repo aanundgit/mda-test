@@ -6,54 +6,11 @@ applies it at that width: the base rules, then every @media (max-width) rule the
 import re
 import unittest
 
-from test_page import Page, read
+from test_page import Page, px, read, style_at
 
-REM = 16  # Browser default root font size; the stylesheet does not change it.
 READABLE = 16
 WIDE, NARROW = 1280, 375
 CONTROLS = ("form", "input", "button", "select", "textarea")
-
-
-def blocks(css):
-    """Top-level (prelude, body) pairs, keeping the rules nested inside an @media block in its body."""
-    found, depth, head, start = [], 0, 0, 0
-    for i, char in enumerate(css):
-        if char == "{":
-            if depth == 0:
-                prelude, start = css[head:i].strip(), i + 1
-            depth += 1
-        elif char == "}":
-            depth -= 1
-            if depth == 0:
-                found.append((prelude, css[start:i]))
-                head = i + 1
-    return found
-
-
-def style_at(css, selector, width):
-    """The declarations a browser applies to selector in a window this many pixels wide."""
-    applied = {}
-    for prelude, body in blocks(css):
-        media = re.fullmatch(r"@media \(max-width: (\d+)px\)", prelude)
-        inner = blocks(body) if media else [(prelude, body)]
-        if media and width > int(media.group(1)):
-            continue
-        for selectors, declarations in inner:
-            if selector in (s.strip() for s in selectors.split(",")):
-                applied.update(re.findall(r"([\w-]+)\s*:\s*([^;]+);", declarations))
-    return applied
-
-
-def px(value, width):
-    def one(part):
-        number, unit = re.fullmatch(r"([\d.]+)(rem|vw|px)", part.strip()).groups()
-        return float(number) * {"rem": REM, "vw": width / 100, "px": 1}[unit]
-
-    clamp = re.fullmatch(r"clamp\((.+),(.+),(.+)\)", value)
-    if clamp:
-        low, preferred, high = map(one, clamp.groups())
-        return max(low, min(preferred, high))
-    return one(value)
 
 
 class Story1423AcceptanceTests(unittest.TestCase):
@@ -90,14 +47,16 @@ class Story1423AcceptanceTests(unittest.TestCase):
         self.assertEqual(self.page.find("meta", **{"http-equiv": "refresh"}), [], "the page does not redirect")
         self.assertEqual(self.page.find("script"), [], "no script can send the customer to a sign-in page")
 
-    def test_tc1429_ac2_the_page_shows_the_site_name_the_offer_line_and_the_contact_link_and_nothing_else(self):
+    def test_tc1429_ac2_the_page_shows_the_site_name_the_offer_line_and_the_contact_link_and_no_sign_in_payment_or_search_control(self):
         """AC2, Test Case 1429."""
         name, offer, contact = self.text("h1"), self.text("p", class_="offer"), self.text("a", class_="contact")
         self.assertTrue(name and offer and contact)
-        self.assertEqual(len(self.page.find("a")), 1, "the contact link is the only link")
+        self.assertEqual(len(self.page.find("a", class_="contact")), 1, "one link to contact the team")
         self.assertEqual([tag for tag in CONTROLS if self.page.find(tag)], [], "no sign-in, payment, or search control")
-        # The rest of the page: the body says these three things and nothing more.
-        self.assertEqual(" ".join(self.text("body").split()), f"{name} {offer} {contact}")
+        # Story 1453 added products between them: the name and offer line still open the page and the contact link closes it.
+        body = " ".join(self.text("body").split())
+        self.assertTrue(body.startswith(f"{name} {offer}"))
+        self.assertTrue(body.endswith(contact))
 
     def test_tc1430_ac3_in_a_wide_window_the_three_items_are_readable_do_not_overlap_and_do_not_scroll_sideways(self):
         """AC3, Test Case 1430."""
