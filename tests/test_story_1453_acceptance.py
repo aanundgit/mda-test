@@ -6,7 +6,7 @@ applies it at that width, and card widths are worked out from the main column, i
 import re
 import unittest
 
-from test_page import ROOT, Page, px, read, style_at, tab_stops
+from test_page import ROOT, Page, contrast, px, read, style_at, tab_stops
 
 WIDE, NARROW = 1280, 375
 READABLE = 16
@@ -14,20 +14,6 @@ CARD_MIN = 200  # Narrower than this, a card's name and description start breaki
 CONTRAST = 4.5  # WCAG AA for body-size text.
 CONTROLS = ("form", "input", "button", "select", "textarea")
 PRODUCTS = ["Four-person tent", "Day-hiking backpack", "Waterproof hiking jacket", "Hiking boots"]
-
-
-def luminance(colour):
-    digits = colour.lstrip("#")
-    if len(digits) == 3:
-        digits = "".join(d * 2 for d in digits)
-    channels = [int(digits[i:i + 2], 16) / 255 for i in (0, 2, 4)]
-    linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
-    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
-
-
-def contrast(a, b):
-    light, dark = sorted((luminance(a), luminance(b)), reverse=True)
-    return (light + 0.05) / (dark + 0.05)
 
 
 def columns(value):

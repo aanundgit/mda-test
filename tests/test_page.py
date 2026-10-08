@@ -104,6 +104,22 @@ def style_at(css, selector, width):
     return applied
 
 
+def luminance(colour):
+    """WCAG relative luminance of #rgb, #rrggbb, or an (r, g, b) tuple of 0-255 channels."""
+    if isinstance(colour, str):
+        digits = colour.lstrip("#")
+        if len(digits) == 3:
+            digits = "".join(d * 2 for d in digits)
+        colour = [int(digits[i:i + 2], 16) for i in (0, 2, 4)]
+    linear = [c / 255 / 12.92 if c / 255 <= 0.03928 else ((c / 255 + 0.055) / 1.055) ** 2.4 for c in colour]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def contrast(a, b):
+    light, dark = sorted((luminance(a), luminance(b)), reverse=True)
+    return (light + 0.05) / (dark + 0.05)
+
+
 def px(value, width):
     def one(part):
         number, unit = re.fullmatch(r"([\d.]+)(rem|vw|px)", part.strip()).groups()
