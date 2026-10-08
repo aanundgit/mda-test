@@ -12,10 +12,35 @@ main {
   max-width: 40rem;
   margin: 0 auto;
   padding: 2rem 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  line-height: 1.2;
+}
+
+.offer {
+  margin: 0 0 1.5rem;
+  font-size: 1.25rem;
+}
+
+.contact {
+  font-weight: 600;
+}
+
+.contact:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
 }
 
 @media (max-width: 600px) {
   main {
     padding: 1.25rem 1rem;
+  }
+
+  .offer {
+    font-size: 1.125rem;
   }
 }
