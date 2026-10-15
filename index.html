@@ -11,11 +11,21 @@
 <body>
   <!-- Placeholder product descriptions, photos (see images/CREDITS.md), and contact address until the team supplies them. A contact email does not go in source. -->
   <header class="site-header">
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="side-nav">Sections</button>
     <p class="site-name">Northwind Outdoor</p>
     <p class="offer">Hiking and camping gear</p>
     <button type="button" class="theme-toggle" aria-pressed="false">Dark theme</button>
   </header>
-  <section class="banner" aria-labelledby="banner-heading">
+  <!-- One link per section of this page; there are no other pages yet. Each section takes tabindex -1, like the
+       products section, so a selected section takes keyboard and screen reader focus without adding a Tab stop. -->
+  <nav class="side-nav" id="side-nav" aria-label="Main sections" hidden>
+    <ul>
+      <li><a href="#home">Home</a></li>
+      <li><a href="#products">Products</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+  <section class="banner" id="home" tabindex="-1" aria-labelledby="banner-heading">
     <img class="banner-photo" src="images/campsite.jpg" alt="A pale tent on a sandy lakeshore with a kayak beside it, pine forest and mountains behind, reflected in still water." width="1600" height="700">
     <div class="banner-text">
       <h1 id="banner-heading">Gear up for your next trail</h1>
@@ -50,8 +60,9 @@
       </ul>
     </section>
   </main>
-  <footer class="site-footer">
+  <footer class="site-footer" id="contact" tabindex="-1">
     <a class="contact" href="https://example.com/contact">Contact the team</a>
   </footer>
+  <script src="nav.js"></script>
 </body>
 </html>

@@ -355,8 +355,11 @@ class ThemeTests(unittest.TestCase):
         self.header = self.page.find("header")[0]
 
     def test_the_header_holds_one_theme_button_that_starts_unpressed(self):
-        buttons = self.page.within(self.header, "button")
-        self.assertEqual([b.attrs.get("class") for b in buttons], ["theme-toggle"])
+        # Other stories put their own buttons in the header (story 1654's Sections button), so this checks the one
+        # theme button, not that it is the header's only button.
+        buttons = self.page.find("button", class_="theme-toggle")
+        self.assertEqual(len(buttons), 1, "the page has one theme button")
+        self.assertIn(buttons[0], self.page.within(self.header, "button"), "the theme button sits in the header")
         self.assertEqual(buttons[0].attrs.get("type"), "button", "the button submits nothing")
         self.assertEqual(buttons[0].attrs.get("aria-pressed"), "false", "the page starts in the light theme")
         self.assertTrue(buttons[0].text.strip(), "the button has a visible label")
@@ -415,6 +418,154 @@ class ThemeTests(unittest.TestCase):
         narrow = style_at(self.css, ".theme-toggle", self.NARROW)
         self.assertEqual((narrow["grid-column"], narrow["justify-self"]), ("1", "center"))
         self.assertEqual(style_at(self.css, ".site-header > p", self.NARROW)["grid-column"], "1")
+
+
+OPEN_PANE = "body:has(> .side-nav:not([hidden]))"
+CARD_MIN = 200  # Narrower than this, a card's name and description start breaking mid-word.
+WIDTH_CHECK = re.compile(r"matchMedia|innerWidth|outerWidth|clientWidth|\bscreen\.")
+
+
+def container_style(css, selector, width):
+    """The declarations @container (max-width) rules add to selector inside a container this many pixels wide."""
+    applied = {}
+    for prelude, body in blocks(css):
+        query = re.fullmatch(r"@container \(max-width: (\d+)px\)", prelude)
+        if query and width <= int(query.group(1)):
+            for selectors, declarations in blocks(body):
+                if selector in (s.strip() for s in selectors.split(",")):
+                    applied.update(re.findall(r"([\w-]+)\s*:\s*([^;]+);", declarations))
+    return applied
+
+
+def position(page, element):
+    return next(i for i, e in enumerate(page.elements) if e is element)
+
+
+class SideNavTests(unittest.TestCase):
+    """Story 1654: a Sections button in the header opens and closes a side navigation pane listing the page's sections."""
+
+    WIDE, NARROW = 1280, 375
+
+    def setUp(self):
+        self.page = Page(read("index.html"))
+        self.css = read("style.css")
+        self.header = self.page.find("header")[0]
+
+    def button(self):
+        buttons = [b for b in self.page.within(self.header, "button") if b.attrs.get("class") == "nav-toggle"]
+        self.assertEqual(len(buttons), 1, "the header holds one Sections button")
+        return buttons[0]
+
+    def nav(self):
+        controls = self.button().attrs.get("aria-controls")
+        self.assertTrue(controls, "the button names the pane it opens")
+        panes = self.page.find("nav", id=controls)
+        self.assertEqual(len(panes), 1, "the pane the button names is a navigation landmark")
+        return panes[0]
+
+    def test_the_sections_button_starts_closed_and_comes_first_in_the_header(self):
+        button = self.button()
+        self.assertEqual(button.attrs.get("type"), "button", "the button submits nothing")
+        self.assertEqual(button.attrs.get("aria-expanded"), "false", "a screen reader hears that the pane is closed")
+        self.assertEqual(button.text.strip(), "Sections")
+        self.assertLess(position(self.page, button), position(self.page, self.page.find("p", class_="site-name")[0]))
+
+    def test_the_closed_pane_is_a_labelled_landmark_between_the_header_and_the_banner(self):
+        nav = self.nav()
+        self.assertIn("hidden", nav.attrs, "the pane starts closed, so the page opens as before")
+        self.assertTrue((nav.attrs.get("aria-label") or "").strip())
+        body = self.page.find("body")[0]
+        self.assertIs(nav.parent, body, "outside the header, so the header text stays the site name and offer line")
+        children = [e for e in self.page.elements if e.parent is body]
+        self.assertIs(children[children.index(self.header) + 1], nav)
+        self.assertLess(position(self.page, nav), position(self.page, self.page.find("section", class_="banner")[0]))
+
+    def test_the_pane_lists_one_link_for_each_section_of_the_home_page_and_each_section_takes_focus(self):
+        links = self.page.within(self.nav(), "a")
+        self.assertEqual([a.text.strip() for a in links], ["Home", "Products", "Contact"])
+        targets = []
+        for link in links:
+            self.assertRegex(link.attrs.get("href", ""), r"^#[\w-]+$", "a section of this page, not a new page")
+            found = [e for e in self.page.elements if e.attrs.get("id") == link.attrs["href"][1:]]
+            self.assertEqual(len(found), 1, link.attrs["href"])
+            targets += found
+        self.assertEqual([t.attrs.get("class") for t in targets], ["banner", "products", "site-footer"])
+        for target in targets:
+            self.assertEqual(target.attrs.get("tabindex"), "-1", "the section takes focus without becoming a Tab stop")
+
+    def test_nav_js_opens_and_closes_the_pane_and_keeps_its_state_announced(self):
+        scripts = self.page.find("script", src="nav.js")
+        self.assertEqual(len(scripts), 1)
+        self.assertGreater(position(self.page, scripts[0]), position(self.page, self.nav()), "it runs once the pane exists")
+        self.assertEqual(script_problems(self.page), [], "no script can stop a link")
+        script = read("nav.js")
+        for call in ('querySelector(".nav-toggle")', 'addEventListener("click"', 'setAttribute("aria-expanded"', ".hidden = "):
+            self.assertIn(call, script)
+        self.assertNotRegex(script, WIDTH_CHECK, "the pane opens and closes the same way at any width")
+
+    def test_the_open_pane_sits_beside_the_page_when_wide_and_above_it_when_narrow(self):
+        self.assertNotIn("display", style_at(self.css, "body", self.WIDE), "a closed pane leaves the page as before")
+        wide = style_at(self.css, OPEN_PANE, self.WIDE)
+        self.assertEqual(wide["display"], "grid")
+        pane, rest = wide["grid-template-columns"].split(" ", 1)
+        self.assertLessEqual(px(pane, self.WIDE), self.WIDE / 4, "the pane leaves most of the window to the page")
+        self.assertEqual(rest, "minmax(0, 1fr)", "the page column shrinks instead of pushing content off the screen")
+        self.assertEqual(style_at(self.css, ".site-header", self.WIDE)["grid-column"], "1 / -1",
+                         "the header keeps the full width, so the Sections button stays where it was pressed")
+        nav = style_at(self.css, ".side-nav", self.WIDE)
+        self.assertEqual((nav["grid-column"], nav["grid-row"], nav["align-self"]), ("1", "2 / span 3", "start"))
+        self.assertEqual((nav["position"], nav["top"]), ("sticky", "0"), "the pane stays in view while the page scrolls")
+        for selector in (".banner", "main", ".site-footer"):
+            self.assertEqual(style_at(self.css, selector, self.WIDE)["grid-column"], "2", selector)
+        self.assertEqual(style_at(self.css, OPEN_PANE, self.NARROW)["display"], "block",
+                         "in a narrow window the open pane moves the page down instead of covering it")
+        self.assertEqual(style_at(self.css, ".side-nav", self.NARROW)["position"], "static")
+
+    def test_with_the_pane_open_each_product_card_stays_wide_enough_to_read_at_any_width(self):
+        self.assertEqual(style_at(self.css, f"{OPEN_PANE} main", self.WIDE).get("container-type"), "inline-size",
+                         "the cards follow the width left beside the pane, not the window")
+        for window in range(320, 1921, 8):
+            with self.subTest(window=window):
+                body = style_at(self.css, OPEN_PANE, window)
+                column = window - px(body["grid-template-columns"].split()[0], window) if body["display"] == "grid" else window
+                main = style_at(self.css, "main", window)
+                content = min(px(main["max-width"], window), column) - 2 * px(main["padding"].split()[1], window)
+                grid = {**style_at(self.css, ".product-grid", window), **container_style(self.css, ".product-grid", content)}
+                count = re.match(r"repeat\((\d+),", grid["grid-template-columns"])
+                count = int(count.group(1)) if count else 1
+                card = (content - px(grid["gap"], window) * (count - 1)) / count
+                self.assertGreaterEqual(card, CARD_MIN, f"{count} cards of {card:.0f}px in a {window}px window")
+
+    def test_the_sections_button_sits_left_of_the_centred_header_text_when_wide_and_above_it_when_narrow(self):
+        wide = style_at(self.css, ".nav-toggle", self.WIDE)
+        self.assertEqual((wide["grid-column"], wide["justify-self"]), ("1", "start"))
+        narrow = style_at(self.css, ".nav-toggle", self.NARROW)
+        self.assertEqual((narrow["grid-column"], narrow["grid-row"], narrow["justify-self"]), ("1", "auto", "center"))
+        width, line, colour = style_at(self.css, ".nav-toggle:focus-visible", self.WIDE)["outline"].split()
+        self.assertGreaterEqual(px(width, self.WIDE), 2)
+        self.assertEqual(line, "solid")
+        self.assertGreaterEqual(contrast(colour, style_at(self.css, ".site-header", self.WIDE)["background"]), 3)
+
+    def test_the_section_links_and_the_sections_button_stay_readable_in_both_themes_in_wide_and_narrow_windows(self):
+        for theme in ("light", "dark"):
+            for width in (self.WIDE, self.NARROW):
+                with self.subTest(theme=theme, width=width):
+                    body = themed(self.css, "body", width, theme)
+                    header = themed(self.css, ".site-header", width, theme)
+                    panel = themed(self.css, ".side-nav ul", width, theme)
+                    link = themed(self.css, ".side-nav a", width, theme).get("color", LINK_BLUE)
+                    link = body["color"] if link == "inherit" else link
+                    outline = themed(self.css, ".side-nav a:focus-visible", width, theme)["outline"].split()[2]
+                    label = themed(self.css, ".nav-toggle", width, theme).get("color", "inherit")
+                    pressed = themed(self.css, '.nav-toggle[aria-expanded="true"]', width, theme)
+                    pairs = {
+                        "section links": (link, panel["background"]),
+                        "section link focus outline": (link if outline == "currentColor" else outline, panel["background"]),
+                        "Sections label": (header["color"] if label == "inherit" else label, header["background"]),
+                        "open Sections label": (pressed["color"], pressed["background"]),
+                    }
+                    for name, (text, background) in pairs.items():
+                        self.assertGreaterEqual(contrast(text, background), 3 if "outline" in name else 4.5, name)
 
 
 if __name__ == "__main__":
