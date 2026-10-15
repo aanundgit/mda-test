@@ -6,13 +6,13 @@ applies it at that width, and card widths are worked out from the main column, i
 import re
 import unittest
 
-from test_page import ROOT, Page, contrast, px, read, style_at, tab_stops
+from test_page import (ROOT, Page, contrast, px, read, script_problems, sign_in_payment_or_search_controls, style_at,
+                       tab_stops)
 
 WIDE, NARROW = 1280, 375
 READABLE = 16
 CARD_MIN = 200  # Narrower than this, a card's name and description start breaking mid-word.
 CONTRAST = 4.5  # WCAG AA for body-size text.
-CONTROLS = ("form", "input", "button", "select", "textarea")
 PRODUCTS = ["Four-person tent", "Day-hiking backpack", "Waterproof hiking jacket", "Hiking boots"]
 
 
@@ -52,9 +52,9 @@ class Story1453AcceptanceTests(unittest.TestCase):
 
     def test_tc1465_ac1_a_customer_who_is_not_signed_in_opens_the_page_and_the_header_shows_northwind_outdoor(self):
         """AC1, Test Case 1465."""
-        self.assertEqual([tag for tag in CONTROLS if self.page.find(tag)], [], "nothing asks for a sign-in")
+        self.assertEqual(sign_in_payment_or_search_controls(self.page), [], "nothing asks for a sign-in")
         self.assertEqual(self.page.find("meta", **{"http-equiv": "refresh"}), [], "the page does not redirect")
-        self.assertEqual(self.page.find("script"), [], "no script can send the customer to a sign-in page")
+        self.assertEqual(script_problems(self.page), [], "no script can send the customer to a sign-in page")
         header = self.page.find("header")[0]
         self.assertEqual(self.page.within(header, "p")[0].text.strip(), "Northwind Outdoor", "the header leads with the site name")
 
@@ -68,7 +68,7 @@ class Story1453AcceptanceTests(unittest.TestCase):
             self.assertTrue((ROOT / photo.attrs["src"]).is_file(), photo.attrs["src"])
             self.assertTrue(line.text.strip())
         body = self.page.find("body")[0].text
-        self.assertEqual([tag for tag in CONTROLS if self.page.find(tag)], [], "no cart or sign-in control")
+        self.assertEqual(sign_in_payment_or_search_controls(self.page), [], "no cart or sign-in control")
         self.assertNotRegex(body, r"(?i)[$€£]\s*\d|\bprice\b|\bcart\b|\bsign[ -]?in\b|\blog[ -]?in\b")
 
     def test_tc1466_ac3_in_a_wide_window_the_four_cards_sit_in_one_row_and_nothing_overlaps_or_is_cut_off(self):

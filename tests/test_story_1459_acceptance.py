@@ -7,7 +7,7 @@ white pixel, which is brighter than any part of the photo can be.
 import re
 import unittest
 
-from test_page import ROOT, Page, contrast, px, read, style_at, tab_stops
+from test_page import ROOT, Page, contrast, px, read, script_problems, style_at, tab_stops
 
 WIDE, NARROW = 1280, 375
 READABLE = 16
@@ -97,7 +97,12 @@ class Story1459AcceptanceTests(unittest.TestCase):
 
     def test_tc1469_ac6_tab_reaches_shop_now_with_a_visible_focus_style_and_enter_moves_to_the_products(self):
         """AC6, Test Case 1469."""
-        self.assertIs(tab_stops(self.page)[0], self.shop_now, "the first Tab lands on Shop now")
+        # Story 1641 put a theme button in the header, which comes before the banner, so Shop now is the first
+        # Tab stop in the banner rather than on the page.
+        in_banner = [e for e in tab_stops(self.page) if e in self.page.within(self.banner, e.tag)]
+        self.assertIs(in_banner[0], self.shop_now, "the first Tab in the banner lands on Shop now")
+        positive = [e for e in self.page.elements if re.fullmatch(r"\+?0*[1-9]\d*", e.attrs.get("tabindex") or "")]
+        self.assertEqual(positive, [], "no positive tabindex moves anything ahead of Shop now")
         width, line, colour = style_at(self.css, ".shop-now:focus-visible", WIDE)["outline"].split()
         self.assertGreaterEqual(px(width, WIDE), 2, "the focus outline is easy to see")
         self.assertEqual(line, "solid")
@@ -109,7 +114,7 @@ class Story1459AcceptanceTests(unittest.TestCase):
         target = self.page.find("section", id=self.shop_now.attrs["href"].removeprefix("#"))
         self.assertEqual([t.attrs.get("class") for t in target], ["products"])
         self.assertEqual(target[0].attrs.get("tabindex"), "-1")
-        self.assertEqual(self.page.find("script"), [], "no script can stop the link")
+        self.assertEqual(script_problems(self.page), [], "no script can stop the link")
 
 
 if __name__ == "__main__":

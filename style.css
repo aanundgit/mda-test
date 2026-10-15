@@ -7,13 +7,46 @@ body {
   font-family: system-ui, sans-serif;
   line-height: 1.5;
   color: #1c2b22;
+  background: #fff;
 }
 
+/* Equal side columns keep the site name centred; the theme button sits in the right-hand one. */
 .site-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: 1rem;
   padding: 1.5rem;
   background: #1f3d2b;
   color: #fff;
   text-align: center;
+}
+
+.site-header > p {
+  grid-column: 2;
+}
+
+.theme-toggle {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  justify-self: end;
+  padding: 0.5rem 1rem;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.theme-toggle[aria-pressed="true"] {
+  background: #fff;
+  color: #1f3d2b;
+}
+
+.theme-toggle:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
 }
 
 .site-name {
@@ -142,6 +175,30 @@ h2 {
   outline-offset: 3px;
 }
 
+/* Dark theme: theme.js sets data-theme on <html>. The header, banner, and Shop now keep their colours,
+   which already read on dark. */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] body {
+  color: #e3ebe5;
+  background: #121a15;
+}
+
+[data-theme="dark"] .product-card {
+  border-color: #3a4a40;
+  background: #1b2620;
+}
+
+[data-theme="dark"] .site-footer {
+  border-top-color: #3a4a40;
+}
+
+[data-theme="dark"] .contact {
+  color: #9fd8b4;
+}
+
 @media (max-width: 900px) {
   .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -155,6 +212,22 @@ h2 {
 
   .offer {
     font-size: 1.125rem;
+  }
+
+  /* One column: the theme button moves under the offer line so it never crowds the site name. */
+  .site-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .site-header > p,
+  .theme-toggle {
+    grid-column: 1;
+  }
+
+  .theme-toggle {
+    grid-row: auto;
+    justify-self: center;
+    margin-top: 0.75rem;
   }
 
   .product-grid {
