@@ -2,10 +2,11 @@
 
 Application repo for trying the tool in the sibling folder `mda-copilot`. The Azure DevOps tools stay in that folder. This folder holds the code a story changes.
 
-The stack is static web pages: HTML and CSS, with no build step and no packages. It is recorded in `.mda/repo.json` and `docs/adr/0001-stack-web-frontend.md`.
+The stack is static web pages: HTML, CSS, and plain JavaScript, with no build step and no packages. It is recorded in `.mda/repo.json`, `docs/adr/0001-stack-web-frontend.md`, and `docs/adr/0002-plain-javascript.md`.
 
 - `index.html`: the page
 - `style.css`: the layout, with a rule for a narrow window
+- `theme.js`: the light and dark theme switch, kept between visits
 - `tests/`: tests that read the page with the Python `html.parser` module
 
 ```bash

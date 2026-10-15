@@ -6,7 +6,7 @@ applies it at that width: the base rules, then every @media (max-width) rule the
 import re
 import unittest
 
-from test_page import Page, px, read, style_at, tab_stops
+from test_page import Page, px, read, script_problems, sign_in_payment_or_search_controls, style_at, tab_stops
 
 READABLE = 16
 WIDE, NARROW = 1280, 375
@@ -43,19 +43,24 @@ class Story1423AcceptanceTests(unittest.TestCase):
 
     def test_tc1429_ac1_a_customer_who_is_not_signed_in_opens_the_page_without_a_sign_in_prompt(self):
         """AC1, Test Case 1429."""
-        self.assertEqual([tag for tag in CONTROLS if self.page.find(tag)], [], "nothing on the page asks for a sign-in")
+        self.assertEqual(sign_in_payment_or_search_controls(self.page), [], "nothing on the page asks for a sign-in")
         self.assertEqual(self.page.find("meta", **{"http-equiv": "refresh"}), [], "the page does not redirect")
-        self.assertEqual(self.page.find("script"), [], "no script can send the customer to a sign-in page")
+        self.assertEqual(script_problems(self.page), [], "no script can send the customer to a sign-in page")
 
     def test_tc1429_ac2_the_page_shows_the_site_name_the_offer_line_and_the_contact_link_and_no_sign_in_payment_or_search_control(self):
         """AC2, Test Case 1429."""
         name, offer, contact = self.text("title"), self.text("p", class_="offer"), self.text("a", class_="contact")
         self.assertTrue(name and offer and contact)
         self.assertEqual(len(self.page.find("a", class_="contact")), 1, "one link to contact the team")
-        self.assertEqual([tag for tag in CONTROLS if self.page.find(tag)], [], "no sign-in, payment, or search control")
+        self.assertEqual(sign_in_payment_or_search_controls(self.page), [], "no sign-in, payment, or search control")
         # Stories 1453 and 1459 added a banner and products between them: the header still opens the page with
-        # the site name and offer line, and the contact link still closes it.
-        self.assertEqual(" ".join(self.text("header").split()), f"{name} {offer}")
+        # the site name and offer line, and the contact link still closes it. Story 1641's theme button sits in
+        # the header; a control's label is not header copy, so it is left out.
+        header = self.page.find("header")[0]
+        copy = header.text
+        for control in (c for tag in CONTROLS for c in self.page.within(header, tag)):
+            copy = copy.replace(control.text, " ", 1)
+        self.assertEqual(" ".join(copy.split()), f"{name} {offer}")
         self.assertTrue(" ".join(self.text("body").split()).endswith(contact))
 
     def test_tc1430_ac3_in_a_wide_window_the_three_items_are_readable_do_not_overlap_and_do_not_scroll_sideways(self):

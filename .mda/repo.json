@@ -1,7 +1,7 @@
 {
   "kind": "web-frontend",
-  "summary": "Static web pages: HTML and CSS. No build step and no packages.",
-  "language": "html, css",
+  "summary": "Static web pages: HTML, CSS, and plain JavaScript. No build step and no packages.",
+  "language": "html, css, javascript",
   "framework": "none",
   "runtime": "static-hosting",
   "test": "python3 -m unittest discover -s tests",

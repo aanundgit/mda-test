@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Northwind Outdoor</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Loaded without defer so a saved dark theme is set before the page is first drawn. -->
+  <script src="theme.js"></script>
 </head>
 <body>
   <!-- Placeholder product descriptions, photos (see images/CREDITS.md), and contact address until the team supplies them. A contact email does not go in source. -->
   <header class="site-header">
     <p class="site-name">Northwind Outdoor</p>
     <p class="offer">Hiking and camping gear</p>
+    <button type="button" class="theme-toggle" aria-pressed="false">Dark theme</button>
   </header>
   <section class="banner" aria-labelledby="banner-heading">
     <img class="banner-photo" src="images/campsite.jpg" alt="A pale tent on a sandy lakeshore with a kayak beside it, pine forest and mountains behind, reflected in still water." width="1600" height="700">
