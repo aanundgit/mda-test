@@ -10,7 +10,8 @@ body {
   background: #fff;
 }
 
-/* Equal side columns keep the site name centred; the theme button sits in the right-hand one. */
+/* Equal side columns keep the site name centred; the Sections button sits in the left-hand one and the theme
+   button in the right-hand one. */
 .site-header {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -26,10 +27,9 @@ body {
   grid-column: 2;
 }
 
+.nav-toggle,
 .theme-toggle {
-  grid-column: 3;
   grid-row: 1 / span 2;
-  justify-self: end;
   padding: 0.5rem 1rem;
   border: 2px solid currentColor;
   border-radius: 999px;
@@ -39,14 +39,74 @@ body {
   cursor: pointer;
 }
 
+.nav-toggle {
+  grid-column: 1;
+  justify-self: start;
+}
+
+.theme-toggle {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.nav-toggle[aria-expanded="true"],
 .theme-toggle[aria-pressed="true"] {
   background: #fff;
   color: #1f3d2b;
 }
 
+.nav-toggle:focus-visible,
 .theme-toggle:focus-visible {
   outline: 3px solid #fff;
   outline-offset: 3px;
+}
+
+/* The side navigation pane. Wide: the open pane takes a column beside the banner, products, and footer, and stays
+   in view while the page scrolls. The header keeps the full width, so the Sections button stays where the customer
+   pressed it. These rules apply only while the pane is open; a closed pane leaves the page as before. */
+body:has(> .side-nav:not([hidden])) {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+}
+
+.site-header {
+  grid-column: 1 / -1;
+}
+
+.banner,
+main,
+.site-footer {
+  grid-column: 2;
+}
+
+.side-nav {
+  grid-column: 1;
+  grid-row: 2 / span 3;
+  align-self: start;
+  position: sticky;
+  top: 0;
+  padding: 1.5rem;
+}
+
+.side-nav ul {
+  margin: 0;
+  padding: 0.5rem;
+  border: 1px solid #d5dccf;
+  border-radius: 0.75rem;
+  background: #fff;
+  list-style: none;
+}
+
+.side-nav a {
+  display: block;
+  padding: 0.625rem 0.75rem;
+  color: inherit;
+  font-weight: 600;
+}
+
+.side-nav a:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
 }
 
 .site-name {
@@ -199,6 +259,11 @@ h2 {
   color: #9fd8b4;
 }
 
+[data-theme="dark"] .side-nav ul {
+  border-color: #3a4a40;
+  background: #1b2620;
+}
+
 @media (max-width: 900px) {
   .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -214,22 +279,61 @@ h2 {
     font-size: 1.125rem;
   }
 
-  /* One column: the theme button moves under the offer line so it never crowds the site name. */
+  /* One column: the Sections button moves above the site name and the theme button under the offer line, so
+     neither crowds the site name. */
   .site-header {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .site-header > p,
+  .nav-toggle,
   .theme-toggle {
     grid-column: 1;
   }
 
+  .nav-toggle,
   .theme-toggle {
     grid-row: auto;
     justify-self: center;
+  }
+
+  .nav-toggle {
+    margin-bottom: 0.75rem;
+  }
+
+  .theme-toggle {
     margin-top: 0.75rem;
   }
 
+  .product-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* No room for a column: the open pane sits under the header across the full width and moves the page down
+     instead of covering it. */
+  body:has(> .side-nav:not([hidden])) {
+    display: block;
+  }
+
+  .side-nav {
+    position: static;
+    padding: 1rem;
+  }
+}
+
+/* With the pane open, main is narrower than the window, so the cards follow main's width instead of the window's.
+   main is a container only while the pane is open, so these rules never apply to a closed page. */
+body:has(> .side-nav:not([hidden])) main {
+  container-type: inline-size;
+}
+
+@container (max-width: 900px) {
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 600px) {
   .product-grid {
     grid-template-columns: minmax(0, 1fr);
   }

@@ -7,6 +7,7 @@ The stack is static web pages: HTML, CSS, and plain JavaScript, with no build st
 - `index.html`: the page
 - `style.css`: the layout, with a rule for a narrow window
 - `theme.js`: the light and dark theme switch, kept between visits
+- `nav.js`: the Sections button that opens and closes the side navigation pane
 - `tests/`: tests that read the page with the Python `html.parser` module
 
 ```bash
