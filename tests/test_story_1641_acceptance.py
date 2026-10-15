@@ -101,7 +101,10 @@ class Story1641AcceptanceTests(unittest.TestCase):
         self.assertEqual([p.attrs.get("class") for p in self.page.within(self.header, "p")], ["site-name", "offer"])
         order = [e.attrs.get("class") or e.tag for e in self.page.elements if e.tag in ("header", "section", "main", "footer")]
         self.assertEqual(order, ["site-header", "banner", "main", "products", "site-footer"])
-        self.assertEqual([e.attrs.get("class") for e in tab_stops(self.page) if e is not button], ["shop-now", "contact"])
+        # Later stories add Tab stops of their own (story 1654's Sections button and section links), so the theme
+        # button, Shop now, and the contact link are checked once each, in order, not as the only Tab stops.
+        own = [e.attrs.get("class") for e in tab_stops(self.page) if e.attrs.get("class") in ("theme-toggle", "shop-now", "contact")]
+        self.assertEqual(own, ["theme-toggle", "shop-now", "contact"])
 
     def test_tc1648_ac2_selecting_the_theme_button_switches_light_to_dark_and_back_in_wide_and_narrow_windows(self):
         """AC2, Test Case 1648. Static: the click wiring and the dark rules. Not run: a real click in a browser."""
@@ -205,7 +208,9 @@ class Story1641AcceptanceTests(unittest.TestCase):
                         for c in contact if colour == "currentColor" else [colour]:
                             self.assertGreaterEqual(contrast(c, background), OUTLINE_CONTRAST, selector)
         # And every link and control keeps working: the Tab stops, their targets, and no script that stops a link.
-        stops = tab_stops(self.page)
+        # Later stories add Tab stops of their own (story 1654's Sections button and section links), so the theme
+        # button, Shop now, and the contact link are checked once each, in order, not as the only Tab stops.
+        stops = [e for e in tab_stops(self.page) if e.attrs.get("class") in ("theme-toggle", "shop-now", "contact")]
         self.assertEqual([e.attrs.get("class") for e in stops], ["theme-toggle", "shop-now", "contact"])
         target = self.page.find("section", id=stops[1].attrs["href"].lstrip("#"))
         self.assertEqual([t.attrs.get("class") for t in target], ["products"], "Shop now still leads to the products")

@@ -355,8 +355,11 @@ class ThemeTests(unittest.TestCase):
         self.header = self.page.find("header")[0]
 
     def test_the_header_holds_one_theme_button_that_starts_unpressed(self):
-        buttons = self.page.within(self.header, "button")
-        self.assertEqual([b.attrs.get("class") for b in buttons], ["theme-toggle"])
+        # Other stories put their own buttons in the header (story 1654's Sections button), so this checks the one
+        # theme button, not that it is the header's only button.
+        buttons = self.page.find("button", class_="theme-toggle")
+        self.assertEqual(len(buttons), 1, "the page has one theme button")
+        self.assertIn(buttons[0], self.page.within(self.header, "button"), "the theme button sits in the header")
         self.assertEqual(buttons[0].attrs.get("type"), "button", "the button submits nothing")
         self.assertEqual(buttons[0].attrs.get("aria-pressed"), "false", "the page starts in the light theme")
         self.assertTrue(buttons[0].text.strip(), "the button has a visible label")
