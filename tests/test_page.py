@@ -631,5 +631,65 @@ class NoticeTests(unittest.TestCase):
                 self.assertEqual(style_at(self.css, ".banner", width).get("overflow-wrap"), "anywhere")
 
 
+TRAIL_TIP = "Trail tip: Pack more water than you think you'll need."
+
+
+class TrailTipTests(unittest.TestCase):
+    """Story 1676: a one-line trail tip under the home page heading, after story 1666's notice and before Shop now."""
+
+    WIDE, NARROW = 1280, 375
+
+    def setUp(self):
+        self.page = Page(read("index.html"))
+        self.css = read("style.css")
+        self.heading = self.page.find("h1")[0]
+        self.siblings = [e for e in self.page.elements if e.parent is self.heading.parent]
+
+    def tip(self):
+        tips = self.page.find("p", class_="trail-tip")
+        self.assertEqual(len(tips), 1, "the home page has one trail tip")
+        return tips[0]
+
+    def test_a_one_line_trail_tip_sits_under_the_heading_after_the_notice_and_before_shop_now(self):
+        tip = self.tip()
+        self.assertIn(tip, self.siblings, "the tip sits in the banner text beside the heading")
+        notice = self.page.find("p", class_="notice")[0]
+        shop_now = self.page.find("a", class_="shop-now")[0]
+        order = [self.siblings.index(e) for e in (self.heading, notice, tip, shop_now)]
+        self.assertEqual(order, sorted(order), "heading, then the notice, then the tip, then Shop now")
+        self.assertEqual(tip.text.strip(), TRAIL_TIP)
+        self.assertEqual([e.tag for e in self.page.elements if e.parent is tip], [], "no line break, link, or picture")
+
+    def test_shop_now_still_follows_in_the_banner_unchanged_and_the_tip_adds_no_tab_stop(self):
+        tip = self.tip()
+        shop_now = self.page.find("a", class_="shop-now")
+        self.assertEqual(len(shop_now), 1)
+        self.assertIn(shop_now[0], self.siblings[self.siblings.index(tip) + 1:], "Shop now stays in the banner text")
+        self.assertEqual(shop_now[0].attrs, {"class": "shop-now", "href": "#products"})
+        self.assertEqual(shop_now[0].text.strip(), "Shop now")
+        self.assertNotIn(tip, tab_stops(self.page))
+
+    def test_the_trail_tip_reads_on_the_banner_overlay_in_both_themes_in_wide_and_narrow_windows(self):
+        self.tip()
+        for theme in ("light", "dark"):
+            for width in (self.WIDE, self.NARROW):
+                with self.subTest(theme=theme, width=width):
+                    banner = themed(self.css, ".banner-text", width, theme)
+                    style = themed(self.css, ".trail-tip", width, theme)
+                    colour = style.get("color", "inherit")
+                    colour = banner["color"] if colour == "inherit" else colour
+                    self.assertGreaterEqual(contrast(colour, overlay_on_white(banner["background"])), 4.5)
+                    self.assertGreaterEqual(px(style["font-size"], width), REM, "at least the body text size")
+
+    def test_the_trail_tip_fits_wide_and_narrow_windows_without_a_fixed_position_or_width(self):
+        self.tip()
+        for width in (self.WIDE, self.NARROW):
+            with self.subTest(width=width):
+                style = style_at(self.css, ".trail-tip", width)
+                self.assertEqual(style.get("margin"), "0", "the banner's gap spaces it, so Shop now keeps its spacing")
+                self.assertNotIn(style.get("position", "static"), ("absolute", "fixed"), "it covers nothing")
+                self.assertFalse({"width", "min-width", "white-space"} & style.keys(), "it wraps in a narrow window")
+
+
 if __name__ == "__main__":
     unittest.main()
