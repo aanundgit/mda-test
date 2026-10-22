@@ -568,5 +568,68 @@ class SideNavTests(unittest.TestCase):
                         self.assertGreaterEqual(contrast(text, background), 3 if "outline" in name else 4.5, name)
 
 
+NOTICE = "Weekend workshops are full."
+
+
+def overlay_on_white(background):
+    """The colour an rgb(0 0 0 / alpha) overlay gives over a white photo, the brightest the banner photo can be."""
+    alpha = float(re.fullmatch(r"rgb\(0 0 0 / ([\d.]+)\)", background).group(1))
+    return (round(255 * (1 - alpha)),) * 3
+
+
+class NoticeTests(unittest.TestCase):
+    """Story 1666: a one-line notice directly under the home page heading tells customers weekend workshops are full."""
+
+    WIDE, NARROW = 1280, 375
+
+    def setUp(self):
+        self.page = Page(read("index.html"))
+        self.css = read("style.css")
+        self.heading = self.page.find("h1")[0]
+        self.siblings = [e for e in self.page.elements if e.parent is self.heading.parent]
+
+    def notice(self):
+        notices = self.page.find("p", class_="notice")
+        self.assertEqual(len(notices), 1, "the home page has one notice")
+        return notices[0]
+
+    def test_a_one_line_notice_that_weekend_workshops_are_full_comes_directly_after_the_heading(self):
+        notice = self.notice()
+        self.assertIs(self.siblings[self.siblings.index(self.heading) + 1], notice, "nothing sits between them")
+        self.assertEqual(notice.text.strip(), NOTICE)
+        self.assertEqual([e.tag for e in self.page.elements if e.parent is notice], [], "no line break, link, or control")
+
+    def test_shop_now_still_follows_in_the_banner_unchanged_and_the_notice_adds_no_tab_stop(self):
+        notice = self.notice()
+        shop_now = self.page.find("a", class_="shop-now")
+        self.assertEqual(len(shop_now), 1)
+        self.assertIn(shop_now[0], self.siblings[self.siblings.index(notice) + 1:], "Shop now stays in the banner text")
+        self.assertEqual(shop_now[0].attrs, {"class": "shop-now", "href": "#products"})
+        self.assertEqual(shop_now[0].text.strip(), "Shop now")
+        self.assertNotIn(notice, tab_stops(self.page))
+
+    def test_the_notice_reads_on_the_banner_overlay_in_both_themes_in_wide_and_narrow_windows(self):
+        self.notice()
+        for theme in ("light", "dark"):
+            for width in (self.WIDE, self.NARROW):
+                with self.subTest(theme=theme, width=width):
+                    banner = themed(self.css, ".banner-text", width, theme)
+                    style = themed(self.css, ".notice", width, theme)
+                    colour = style.get("color", "inherit")
+                    colour = banner["color"] if colour == "inherit" else colour
+                    self.assertGreaterEqual(contrast(colour, overlay_on_white(banner["background"])), 4.5)
+                    self.assertGreaterEqual(px(style["font-size"], width), REM, "at least the body text size")
+
+    def test_the_notice_fits_wide_and_narrow_windows_without_a_fixed_position_or_width(self):
+        self.notice()
+        for width in (self.WIDE, self.NARROW):
+            with self.subTest(width=width):
+                style = style_at(self.css, ".notice", width)
+                self.assertEqual(style.get("margin"), "0", "the banner's gap spaces it, so Shop now keeps its spacing")
+                self.assertNotIn(style.get("position", "static"), ("absolute", "fixed"), "it covers nothing")
+                self.assertFalse({"width", "min-width", "white-space"} & style.keys(), "it wraps in a narrow window")
+                self.assertEqual(style_at(self.css, ".banner", width).get("overflow-wrap"), "anywhere")
+
+
 if __name__ == "__main__":
     unittest.main()

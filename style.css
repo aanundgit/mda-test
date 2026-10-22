@@ -158,6 +158,14 @@ h1 {
   text-align: center;
 }
 
+/* It inherits the banner text colour, which reads on the overlay in both themes, and the banner's gap spaces it,
+   so it needs no dark rule and no margin of its own. */
+.notice {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
 .shop-now {
   padding: 0.75rem 1.5rem;
   border-radius: 999px;
